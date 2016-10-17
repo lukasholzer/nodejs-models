@@ -142,7 +142,7 @@ export class Storyblok {
             } // if typeof object
           } // for loop
 
-          debug(z);
+          // debug(z);
           resolve(z);
         })
         .catch(error => {
