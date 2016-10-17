@@ -77,12 +77,12 @@ class Hbs {
         this.defaultLayout = options.defaultLayout || 'main';
         this.defaultView = options.defaultView || 'index';
         this.locals = options.locals || {};
-        
+
         this.partialsRegistered = false;
 
         this.disableCache = options.disableCache || true;
 
-        // handlebars.compile(options) -> take a look at the official handlebars page        
+        // handlebars.compile(options) -> take a look at the official handlebars page
         this.compilerOptions = null;
 
         // Cache templates and layouts
@@ -102,7 +102,7 @@ class Hbs {
     /**
      * Is the Middleware for Koa2
      * adding the render function to the ctx Object
-     * 
+     *
      * @param {any} options
      * @returns async(ctx, next) - for the middleware function requirements
      */
@@ -133,7 +133,7 @@ class Hbs {
             locals = merge(this.state || {}, locals || {});
             locals = merge(_self.locals, locals);
 
-            // Register all Partials                
+            // Register all Partials
             if (!_self.partialsRegistered && _self.partialsDir !== '') {
                 await _self._registerPartials();
             }
@@ -222,7 +222,9 @@ class Hbs {
 
 
     _registerHelpers() {
-        const helpers = requireDir('../lib/helpers', { recurse: false });
+      const base = requireDir('../lib/basehelpers', { recurse: false });
+      const specific = requireDir('../lib/helpers', { recurse: false });
+      const helpers = merge(base, specific);
 
         this.handlebars.registerHelper({
             'partial': function (name) {
@@ -233,11 +235,11 @@ class Hbs {
         forIn(helpers, (group, key) => {
             this.handlebars.registerHelper(key, group);
         });
-    }    
+    }
 
     /**
      * Glob all the Files and return an promise wich resolves an array
-     * 
+     *
      * @param {String} globPath – is a globbing path: *.js
      * @returns a Promise with the filepaths in an array
      */
@@ -263,7 +265,7 @@ class Hbs {
 
     /**
      * Promise wrapped I/O File reading with Nodes fs.readFile
-     * 
+     *
      * @param {string} file – The filename to read
      * @returns a Promise wich resolves the data
      */
