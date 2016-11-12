@@ -121,7 +121,7 @@ class Hbs {
 
         let _self = this;
 
-        return async function(tpl, locals, options) {
+        return async function(tpl, locals, options = {}) {
             const layout = (options.layout) ? options.layout : _self.defaultLayout;
             const tplPath = _self._getTemplatePath(tpl)
             const layPath = _self._getLayoutPath(layout);
