@@ -4,6 +4,7 @@ import glob from 'glob';
 import forIn from 'for-in';
 import handlebars from 'handlebars';
 import requireDir from 'require-dir';
+import markdown from 'helper-markdown';
 
 /**
  * Shallow copy two objects into a new object
@@ -229,7 +230,8 @@ class Hbs {
         this.handlebars.registerHelper({
             'partial': function (name) {
                 return name;
-            }
+            },
+            'markdown': markdown([])
         });
 
         forIn(helpers, (group, key) => {

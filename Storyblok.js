@@ -33,13 +33,13 @@ export class Storyblok {
 
         request(options, function (error, response, body) {
           if (error) {
-            console.error(`\t\`-[Storyblok] \t --> ${error}`.red);
+            console.error(`\`-[Storyblok] \t --> ${error}`.red);
             reject(404);
           } else if (response.statusCode === 401) {
-            console.error(`\t\`-[Storyblok]--> Unauthorized to access: ${url}`.yellow);
+            console.error(`\`-[Storyblok]--> Unauthorized to access: ${url}`.yellow);
             reject(401);
           } else if (response.statusCode !== 200) {
-            console.error(`\t\`-[Storyblok]--> Unknown status Code: ${response.statusCode}: ${url}`.red);
+            console.error(`\`-[Storyblok]--> Unknown status Code: ${response.statusCode}: ${url}`.red);
             reject(response.statusCode);
           } else {
             cache.put(url, JSON.parse(body));
@@ -58,11 +58,42 @@ export class Storyblok {
         .then(result => {
           resolve(result);
         }).catch(statusCode => {
-          console.log('[Storyblok.js: getStory()] -> Error: '.red);
-          console.log(`\t - ${statusCode}`.red);
           reject(statusCode);
         });
     });
+  }
+
+
+  addPagesToPromiseStack(array, promiseStack) {
+    if(!array) {
+      return promiseStack;
+    }
+    if (!Array.isArray(array)) {
+      const url = `https://api.storyblok.com/v1/cdn/${this.lang}/${array}`;
+      promiseStack.push(this.getStory(url));
+    } else {
+      for (let j = 0, maxj = array.length; j < maxj; j++) {
+        const url = `https://api.storyblok.com/v1/cdn/stories/${this.lang}/${array[j]}`;
+        promiseStack.push(this.getStory(url));
+      }
+    }
+
+    return promiseStack;
+  }
+
+  // get stories with -> Storyblok querys with getStoryAPI
+  addCollectionsToPromiseStack(array, promiseStack) {
+    if (!array) {
+      return promiseStack;
+    }
+
+    for (let j = 0, maxj = array.length; j < maxj; j++) {
+      let key = Object.keys(array[j])[0];
+      const url = `http://api.storyblok.com/v1/cdn/stories?${array[j][key]}`;
+      promiseStack.push(this.getStory(url));
+    }
+
+    return promiseStack;
   }
 
   /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -77,7 +108,6 @@ export class Storyblok {
     this.lang = datas[0].lang;
     this.version = datas[0].version; // get the version for storyblok
 
-
     return new Promise((resolve, reject) => {
       let promiseStack = [];
       let resultstack = [];
@@ -88,25 +118,9 @@ export class Storyblok {
       for (let i = 0, max = datas.length; i < max; i++) {
         let data = datas[i];
 
-        // get stories as Pages -> as array or as single entry
-        if (!Array.isArray(data.page)) {
-          url = `https://api.storyblok.com/v1/cdn/spaces/${this.spaceId}/stories/${data.lang}/${data.page}`;
-          promiseStack.push(this.getStory(url));
-        } else {
-          for (let j = 0, maxj = data.page.length; j < maxj; j++) {
-            url = `https://api.storyblok.com/v1/cdn/spaces/${this.spaceId}/stories/${data.lang}/${data.page[j]}`;
-            promiseStack.push(this.getStory(url));
-          }
-        }
-
-        // get stories with -> Storyblok querys with getStoryAPI
-        if (data.querys) {
-          for (let j = 0, maxj = data.querys.length; j < maxj; j++) {
-            let key = Object.keys(data.querys[j])[0];
-            url = `http://api.storyblok.com/v1/cdn/spaces/${this.spaceId}/stories?${data.querys[j][key]}`;
-            promiseStack.push(this.getStory(url));
-          }
-        }
+        promiseStack = this.addPagesToPromiseStack(data.page, promiseStack); // add pages
+        promiseStack = this.addPagesToPromiseStack(data.global, promiseStack); // add globals
+        promiseStack = this.addCollectionsToPromiseStack(data.querys, promiseStack); // add collections
       }
 
       Promise.all(promiseStack)
@@ -129,11 +143,12 @@ export class Storyblok {
                 if (result[i].stories.length > 0) {
                   let a = [];
 
-                  result[i].stories.forEach(story => {
-                    a.push(story);
-                  })
+                    result[i].stories.forEach(story => {
+                      a.push(story);
+                    });
 
                   let key = a[0].full_slug.split('/')[1];
+                  console.log(`[Storyblok.js] -> fetched collection: ${key}`.cyan);
                   z[key] = a;
                 } else {
                   console.log(`[Storyblok.js] -> empty folder!`.yellow);
@@ -141,13 +156,9 @@ export class Storyblok {
               } // if multiple stories
             } // if typeof object
           } // for loop
-
           // debug(z);
           resolve(z);
-        })
-        .catch(error => {
-          console.log('[Storyblok.js] -> Error: '.red);
-          console.log(`\t - ${error}`.red);
+        }).catch(error => {
           reject('Not able to fetch all data');
         });
     });
