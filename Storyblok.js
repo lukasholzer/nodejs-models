@@ -30,6 +30,8 @@ export class Storyblok {
       const res = cache.get(url);
 
       if (!res || version === 'draft') {
+        
+        cache.put(url, JSON.parse(body));
 
         request(options, function (error, response, body) {
           if (error) {
@@ -42,7 +44,6 @@ export class Storyblok {
             console.error(`\`-[Storyblok]--> Unknown status Code: ${response.statusCode}: ${url}`.red);
             reject(response.statusCode);
           } else {
-            cache.put(url, JSON.parse(body));
             resolve(JSON.parse(body));
           }
         });
